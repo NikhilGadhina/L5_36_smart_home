@@ -1,72 +1,88 @@
+"""Smart-home device controller used for the Lab 5 static-analysis exercise."""
+
 import json
-import subprocess
 
-HUB_HOST = "0.0.0.0"
+HUB_HOST = "127.0.0.1"
 HUB_PORT = 8080
-POWER_USAGE = {"light" : 10, "fan": 60, "thermostat": 1500, "tv": 120}
-HUB_PASSWORD = "smarthome-demo"
-devices = {}
+POWER_USAGE = {"light": 10, "fan": 60, "thermostat": 1500, "tv": 120}
+DEVICES = {}
 
 
-def addDevice(deviceName, kind, room="Living Room", settings={}):
-    devices[deviceName] = {"kind": kind, "room": room, "on": False,
-                           "settings": settings}
+def add_device(device_name, kind, room="Living Room", settings=None):
+    """Register a device with its own settings dictionary."""
+    device_settings = {} if settings is None else dict(settings)
+    DEVICES[device_name] = {
+        "kind": kind,
+        "room": room,
+        "on": False,
+        "settings": device_settings,
+    }
 
 
-def toggleDevice(deviceName):
-    if deviceName in devices:
-        devices[deviceName]["on"] = not devices[deviceName]["on"]
-        return devices[deviceName]["on"]
-    print("Device not found:", deviceName)
+def toggle_device(device_name):
+    """Toggle a device's power and return its new state."""
+    device = DEVICES.get(device_name)
+    if device is None:
+        print("Device not found:", device_name)
+        return False
+    device["on"] = not device["on"]
+    return device["on"]
 
 
-def setTemperature(deviceName, value):
-    device = devices[deviceName]
+def set_temperature(device_name, value):
+    """Set a thermostat temperature, clamped to the supported 16–30 range."""
+    device = DEVICES.get(device_name)
+    if device is None:
+        print("Device not found:", device_name)
+        return False
     if device["kind"] != "thermostat":
-        print(deviceName, "is not a thermostat")
+        print(device_name, "is not a thermostat")
         return False
     device["settings"]["temperature"] = min(max(value, 16), 30)
     return True
 
 
-def devicesInRoom(room):
-    return [name for name, info in devices.items() if info["room"] == room]
+def devices_in_room(room):
+    """Return the names of devices assigned to a room."""
+    return [name for name, info in DEVICES.items() if info["room"] == room]
 
 
-def powerUsage():
-    active = [info for info in devices.values() if info["on"]]
-    return sum(POWER_USAGE.get(info["kind"], 0) for info in active)
-
-def saveState(fileName="home_state.json"):
-    with open(fileName, "w") as f:
-        json.dump(devices, f, indent=2)
+def power_usage():
+    """Return the combined power draw of all active devices in watts."""
+    active_devices = [info for info in DEVICES.values() if info["on"]]
+    return sum(POWER_USAGE.get(info["kind"], 0) for info in active_devices)
 
 
-def hubAddress():
+def save_state(file_name="home_state.json"):
+    """Save the current device registry as a JSON file."""
+    with open(file_name, "w", encoding="utf-8") as state_file:
+        json.dump(DEVICES, state_file, indent=2)
+
+
+def hub_address():
+    """Return the local hub address for app setup."""
     return HUB_HOST + ":" + str(HUB_PORT)
 
 
-def runScene(sceneScript):
-    # Helper kept for the lab: not called by the demo
-    subprocess.call("bash scenes/" + sceneScript, shell=True)
-
-
 def main():
-    addDevice("Ceiling Light", "light")
-    addDevice("Bedroom Fan", "fan", "Bedroom")
-    addDevice("Thermostat", "thermostat", "Bedroom")
-    addDevice("Smart TV", "tv")
-    toggleDevice("Ceiling Light")
-    toggleDevice("Thermostat")
-    toggleDevice("Garage Door")
-    setTemperature("Thermostat", 35)
-    setTemperature("Ceiling Light", 20)
-    print("Bedroom devices:", devicesInRoom("Bedroom"))
-    print("Current power use (W):", powerUsage())
-    print("Hub address:", hubAddress()) # for app setup
-    print("Light settings:", devices["Ceiling Light"]["settings"])
-    print("Devices on:", [name for name, info in devices.items() if info["on"]])
-    saveState()
+    """Run a short demonstration of the smart-home controller."""
+    add_device("Ceiling Light", "light")
+    add_device("Bedroom Fan", "fan", "Bedroom")
+    add_device("Thermostat", "thermostat", "Bedroom")
+    add_device("Smart TV", "tv")
+    toggle_device("Ceiling Light")
+    toggle_device("Thermostat")
+    toggle_device("Garage Door")
+    set_temperature("Thermostat", 35)
+    set_temperature("Ceiling Light", 20)
+    print("Bedroom devices:", devices_in_room("Bedroom"))
+    print("Current power use (W):", power_usage())
+    print("Hub address:", hub_address())  # for app setup
+    print("Light settings:", DEVICES["Ceiling Light"]["settings"])
+    active_devices = [name for name, info in DEVICES.items() if info["on"]]
+    print("Devices on:", active_devices)
+    save_state()
 
 
-main()
+if __name__ == "__main__":
+    main()

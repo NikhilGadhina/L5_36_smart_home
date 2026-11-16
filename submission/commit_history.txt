@@ -1,0 +1,4 @@
+Three local commits (not pushed to GitHub):
+a6fc0fe fix(security): remove unsafe shell and risky defaults
+f8f303c fix(pylint): improve controller quality and state handling
+0605d68 style(flake8): clean formatting violations

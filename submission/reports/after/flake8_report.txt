@@ -1,0 +1,3 @@
+Command: .venv/bin/python -m flake8 smart_home.py
+Exit status: 0
+Output: (empty — no Flake8 violations found)
